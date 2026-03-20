@@ -109,7 +109,11 @@ export default function QRScanner() {
     const resetScan = () => {
         setScanResult(null);
         if (scannerRef.current) {
-            scannerRef.current.resume().catch(() => {});
+            try {
+                scannerRef.current.resume();
+            } catch (error) {
+                // Ignore if not paused
+            }
         }
         isVerifyingRef.current = false;
         setIsVerifying(false);

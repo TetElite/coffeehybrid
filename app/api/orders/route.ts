@@ -41,7 +41,7 @@ export const POST = async (req: Request) => {
 
         for (const item of items) {
             // Validate Object ID before querying
-            if (!mongoose.Types.ObjectId.isValid(item.product)) {
+            if (!mongoose.Types.ObjectId.isValid(item.product as string)) {
                 return NextResponse.json({ 
                     success: false, 
                     error: 'Your cart contains outdated items. Please clear your cart and refresh the menu.' 
