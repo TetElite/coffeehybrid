@@ -1,4 +1,4 @@
-import { Types } from 'mongoose';
+// import { Types } from 'mongoose'; // Removed to prevent client-side bundle issues
 
 export type Role = 'customer' | 'staff' | 'admin';
 export type OrderStatus = 'pending' | 'confirmed' | 'ready' | 'completed' | 'cancelled' | 'expired';
@@ -14,9 +14,10 @@ export interface ExtendedUser {
 }
 
 export interface IUser {
-    _id: string | Types.ObjectId;
+    _id: string; // Simplified for client-side compatibility
     name: string;
     email: string;
+    password?: string;
     image?: string;
     role: Role;
     strikes: number;
@@ -26,7 +27,7 @@ export interface IUser {
 }
 
 export interface ICategory {
-    _id: string | Types.ObjectId;
+    _id: string; // Simplified for client-side compatibility
     name: string;
     slug: string;
     description?: string; // FIX: Added optional description field used in admin pages
@@ -54,11 +55,11 @@ export interface ICustomizationOptions {
 }
 
 export interface IProduct {
-    _id: string | Types.ObjectId;
+    _id: string; // Simplified for client-side compatibility
     name: string;
     description: string;
     basePrice: number;
-    category: string | Types.ObjectId | ICategory;
+    category: string | ICategory;
     imageUrl: string; // Used in most places
     image?: string; // FIX: Added for backward compatibility with admin form
     isAvailable: boolean;
@@ -68,7 +69,7 @@ export interface IProduct {
 }
 
 export interface IOrderItem {
-    product: string | Types.ObjectId | IProduct;
+    product: string | IProduct;
     quantity: number;
     customizations: {
         size?: string;
@@ -80,8 +81,8 @@ export interface IOrderItem {
 }
 
 export interface IOrder {
-    _id: string | Types.ObjectId;
-    user: string | Types.ObjectId | IUser;
+    _id: string; // Simplified for client-side compatibility
+    user: string | IUser;
     items: IOrderItem[];
     subtotal: number;
     total: number;
@@ -94,9 +95,9 @@ export interface IOrder {
 }
 
 export interface IStrike {
-    _id: string | Types.ObjectId;
-    user: string | Types.ObjectId | IUser;
-    order: string | Types.ObjectId | IOrder;
+    _id: string; // Simplified for client-side compatibility
+    user: string | IUser;
+    order: string | IOrder;
     reason: string;
     createdAt: Date;
 }

@@ -24,6 +24,7 @@ export default function Navbar() {
 
     const NavLinks = [
         { href: '/menu', label: 'Menu' },
+        ...(isLoggedIn ? [{ href: '/history', label: 'History' }] : []),
         ...(isLoggedIn && (role === 'staff' || role === 'admin') ? [{ href: '/staff', label: 'Staff Portal' }] : []),
         ...(isLoggedIn && role === 'admin' ? [{ href: '/admin', label: 'Admin View' }] : []),
     ];

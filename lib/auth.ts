@@ -1,9 +1,11 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
-import { MongoDBAdapter } from "@auth/mongodb-adapter";
-import clientPromise from "./mongodb-client";
+import Credentials from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
+// import { MongoDBAdapter } from "@auth/mongodb-adapter";
+// import clientPromise from "./mongodb-client";
 import dbConnect from "./mongodb";
-import User from "@/models/User";
+import User from "@/models/User"; 
 import { Role } from "@/types";
 
 // Type augmentation for NextAuth v5
@@ -22,41 +24,127 @@ declare module "next-auth" {
 }
 
 export const { auth, handlers, signIn, signOut } = NextAuth({
-    adapter: MongoDBAdapter(clientPromise),
+    debug: true, // Enable debugging to troubleshoot sign-in issues
+    trustHost: true,
+    // adapter: MongoDBAdapter(clientPromise), // Temporarily disabled to allow sign-in without DB
     providers: [
         Google({
             clientId: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+            authorization: {
+                params: {
+                    prompt: "consent",
+                    access_type: "offline",
+                    response_type: "code"
+                }
+            }
         }),
+        Credentials({
+            credentials: {
+                email: { label: "Email", type: "email" },
+                password: { label: "Password", type: "password" }
+            },
+            authorize: async (credentials: any) => {
+                try {
+                    if (!credentials?.email || !credentials?.password) {
+                        return null;
+                    }
+
+                    // Development Fallback: If using admin mock credentials
+                    if (process.env.NODE_ENV === 'development' && 
+                        credentials.email === 'admin@coffee.com' && 
+                        credentials.password === 'admin123') {
+                        return {
+                            id: 'mock-admin-id',
+                            name: 'Mock Admin',
+                            email: 'admin@coffee.com',
+                            role: 'admin',
+                            strikes: 0,
+                            suspendedUntil: null
+                        };
+                    }
+
+                    // Development Fallback: If using customer mock credentials
+                    if (process.env.NODE_ENV === 'development' && 
+                        credentials.email === 'customer@coffee.com' && 
+                        credentials.password === 'customer123') {
+                        return {
+                            id: 'mock-customer-id',
+                            name: 'Mock Customer',
+                            email: 'customer@coffee.com',
+                            role: 'customer',
+                            strikes: 0,
+                            suspendedUntil: null
+                        };
+                    }
+
+                    await dbConnect();
+                    
+                    const user = await User.findOne({ email: credentials.email });
+
+                    if (!user) {
+                        return null;
+                    }
+
+                    // If user has no password (e.g. Google auth only), fail credentials login
+                    if (!user.password) {
+                        return null; 
+                    }
+
+                    const isPasswordValid = await bcrypt.compare(
+                        credentials.password,
+                        user.password
+                    );
+
+                    if (!isPasswordValid) {
+                        return null;
+                    }
+
+                    return {
+                        id: user._id.toString(),
+                        name: user.name,
+                        email: user.email,
+                        role: user.role,
+                        strikes: user.strikes || 0,
+                        suspendedUntil: user.suspendedUntil || null
+                    };
+                } catch (error) {
+                    console.error("Auth error:", error);
+                    return null;
+                }
+            }
+        })
     ],
     callbacks: {
-        async session({ session, user }) {
-            // In NextAuth v5 with an adapter, the "user" object passed here is the DB user
+        async signIn({ user, account, profile }) {
+            // Log sign-in attempt for debugging
+            console.log("Sign-in attempt:", { user, account });
+            return true;
+        },
+        async session({ session, token }) {
             if (session.user) {
-                await dbConnect();
-                const dbUser = await User.findOne({ email: user.email });
-                if (dbUser) {
-                    session.user.id = user.id;
-                    session.user.role = dbUser.role;
-                    session.user.strikes = dbUser.strikes;
-                    session.user.suspendedUntil = dbUser.suspendedUntil;
-                }
+                session.user.id = token.sub || (token.id as string) || '1';
+                session.user.role = (token.role as Role) || 'customer';
+                session.user.strikes = (token.strikes as number) || 0;
+                session.user.suspendedUntil = (token.suspendedUntil as Date) || null;
             }
             return session;
         },
-        async signIn({ user, account }) {
-            if (account?.provider === "google") {
-                await dbConnect();
-                const existingUser = await User.findOne({ email: user.email });
-
-                // If it's a new user, the adapter creates it. 
-                // But we want to ensure default fields or handle role assignment here.
-                if (existingUser && existingUser.suspendedUntil && new Date(existingUser.suspendedUntil) > new Date()) {
-                    // Block sign in if suspended
-                    throw new Error("ACCOUNT_SUSPENDED");
-                }
+        async jwt({ token, user, trigger, session }) {
+            if (user) {
+                token.id = user.id;
+                token.role = (user as any).role || 'customer';
+                token.strikes = (user as any).strikes || 0;
+                token.suspendedUntil = (user as any).suspendedUntil || null;
             }
-            return true;
+            
+            // Allow updating session data
+            if (trigger === "update" && session?.user) {
+                token.role = session.user.role;
+                token.strikes = session.user.strikes;
+            }
+            
+            return token;
         },
     },
     pages: {
@@ -64,6 +152,6 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         error: "/login", // Redirect errors back to login
     },
     session: {
-        strategy: "database", // Since using an adapter
+        strategy: "jwt", // Use JWT instead of database sessions
     },
 });

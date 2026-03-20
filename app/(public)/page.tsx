@@ -2,10 +2,14 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Coffee, ArrowRight, Zap, ShieldCheck, Clock } from 'lucide-react';
+import { Coffee, ArrowRight, Zap, ShieldCheck, Clock, LayoutDashboard } from 'lucide-react';
+import { useSession } from 'next-auth/react'; // Added useSession
 import { Button } from '@/components/ui/button';
+import DrinkCarousel from '@/components/menu/DrinkCarousel'; // Added DrinkCarousel
 
 export default function LandingPage() {
+    const { data: session } = useSession(); // Access session data
+
     return (
         <div className="flex flex-col min-h-screen bg-background">
             {/* Hero Section */}
@@ -33,18 +37,35 @@ export default function LandingPage() {
                         digitally verified, and ready when you are.
                     </p>
 
-                    <div className="flex flex-col sm:flex-row gap-4 mt-4">
-                        <Button size="lg" asChild className="h-12 px-8 text-base">
+                    <div className="flex flex-col sm:flex-row gap-4 mt-6">
+                        <Button size="lg" asChild className="h-12 px-8 text-base shadow-lg shadow-primary/20">
                             <Link href="/menu">
                                 Order Now <ArrowRight className="ml-2 w-4 h-4" />
                             </Link>
                         </Button>
-                        <Button size="lg" variant="outline" asChild className="h-12 px-8 text-base">
-                            <Link href="/login">Sign In</Link>
-                        </Button>
+                        {!session ? (
+                            <Button size="lg" variant="outline" asChild className="h-12 px-8 text-base hover:bg-secondary/50">
+                                <Link href="/login">Sign In</Link>
+                            </Button>
+                        ) : (
+                             // Only show Dashboard button if admin/staff, otherwise just Order Now is enough or Profile link?
+                             // But request was "not show the sign in button".
+                             // Maybe add a "My Orders" or simply nothing extra as "Order Now" covers it.
+                             // I'll add a Dashboard link if they have access, otherwise nothing.
+                             (session.user as any)?.role !== 'customer' && (
+                                <Button size="lg" variant="outline" asChild className="h-12 px-8 text-base hover:bg-secondary/50">
+                                    <Link href={(session.user as any)?.role === 'admin' ? '/admin' : '/staff'}>
+                                        <LayoutDashboard className="mr-2 w-4 h-4" /> Dashboard
+                                    </Link>
+                                </Button>
+                             )
+                        )}
                     </div>
                 </motion.div>
             </section>
+
+            {/* Drink Carousel Section */}
+            <DrinkCarousel />
 
             {/* Features Section */}
             <section className="py-20 bg-card/30 border-y border-border/40">

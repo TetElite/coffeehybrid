@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/shared/Navbar";
+import Footer from "@/components/shared/Footer";
 import NextAuthProvider from "@/components/providers/NextAuthProvider";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -26,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased selection:bg-primary selection:text-primary-foreground`}
       >
@@ -36,6 +37,7 @@ export default function RootLayout({
             <main className="flex-grow">
               {children}
             </main>
+            <Footer />
             <Toaster position="top-center" expand={true} richColors />
           </div>
         </NextAuthProvider>

@@ -5,6 +5,8 @@ import Order from '@/models/Order';
 import User from '@/models/User';
 import { ExtendedUser } from '@/types';
 
+export const dynamic = 'force-dynamic';
+
 export const GET = async (req: Request, { params }: { params: Promise<{ id: string }> }) => {
     try {
         const { id } = await params;

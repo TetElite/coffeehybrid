@@ -58,3 +58,17 @@ export const getSuspensionMessage = (suspendedUntil: Date | null | undefined): s
   const endTime = new Date(suspendedUntil);
   return `Account suspended until ${endTime.toLocaleString()}`;
 };
+
+/**
+ * Applies a strike and auto-suspension logic for missed pickups
+ * @param user - User document to apply strike to
+ * @returns True if user was suspended, false otherwise
+ */
+export const applyStrike = (user: { strikes?: number; suspendedUntil?: Date | null }): boolean => {
+  incrementStrike(user);
+  if (shouldSuspend(user.strikes!)) {
+    user.suspendedUntil = calculateSuspensionEndTime();
+    return true;
+  }
+  return false;
+};

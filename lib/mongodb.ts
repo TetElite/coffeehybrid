@@ -34,11 +34,21 @@ async function dbConnect() {
     if (!cached.promise) {
         const opts = {
             bufferCommands: false,
+            maxPoolSize: 10,
+            serverSelectionTimeoutMS: 3000, // Reduced from 15s to 3s for faster fallback
+            socketTimeoutMS: 5000,
+            connectTimeoutMS: 3000,
+            family: 4, // Use IPv4, skip trying IPv6
         };
 
+        // Added catch block to prevent unhandled promise rejections crashing the app
         cached.promise = mongoose.connect(MONGODB_URI!, opts).then((mongoose) => {
+            console.log("MongoDB Connected Successfully");
             return mongoose;
-        });
+        }).catch(err => {
+            console.error("MongoDB Connection Failed (Check IP Whitelist):", err.message);
+            throw err;
+        }) as any;
     }
 
     try {

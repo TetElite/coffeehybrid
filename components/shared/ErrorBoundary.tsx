@@ -9,6 +9,7 @@
 import { ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ROUTES } from '@/lib/routes';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -28,7 +29,7 @@ export default function ErrorBoundary({
   }
 
   const handleReset = () => {
-    window.location.href = '/';
+    window.location.href = ROUTES.HOME;
   };
 
   return (

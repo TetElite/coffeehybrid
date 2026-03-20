@@ -4,6 +4,8 @@ import dbConnect from '@/lib/mongodb';
 import Order from '@/models/Order';
 import { ExtendedUser } from '@/types';
 
+export const dynamic = 'force-dynamic';
+
 export const GET = async () => {
     try {
         const session = await auth();

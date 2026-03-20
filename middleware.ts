@@ -2,6 +2,9 @@ import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { Role } from "@/types";
 
+// Force Node.js runtime (needed for NextAuth crypto operations)
+export const runtime = "nodejs";
+
 interface ExtendedUser {
     id: string;
     name?: string | null;
@@ -20,8 +23,14 @@ export default auth((req) => {
     const isStaffRoute = pathname.startsWith("/staff");
     const isAdminRoute = pathname.startsWith("/admin");
     const isProtectedUserRoute = pathname.startsWith("/checkout") || pathname.startsWith("/order");
+    const isLoginPage = pathname === "/login";
 
-    // Authentication check
+    // Redirect logged-in users away from login page
+    if (isLoginPage && isLoggedIn) {
+        return NextResponse.redirect(new URL("/", req.nextUrl.origin));
+    }
+
+    // Authentication check for protected routes
     if ((isStaffRoute || isAdminRoute || isProtectedUserRoute) && !isLoggedIn) {
         const loginUrl = new URL("/login", req.nextUrl.origin);
         loginUrl.searchParams.set("callbackUrl", pathname);
@@ -47,5 +56,5 @@ export default auth((req) => {
 });
 
 export const config = {
-    matcher: ["/admin/:path*", "/staff/:path*", "/checkout/:path*", "/order/:path*"],
+    matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };

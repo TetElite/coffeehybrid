@@ -5,6 +5,7 @@
 
 import Link from 'next/link';
 import { Coffee } from 'lucide-react';
+import { ROUTES, LEGAL_LINKS } from '@/lib/routes';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -15,7 +16,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           {/* Brand */}
           <div className="space-y-3">
-            <Link href="/" className="flex items-center gap-2 font-black text-lg">
+            <Link href={ROUTES.HOME} className="flex items-center gap-2 font-black text-lg">
               <Coffee className="w-5 h-5 text-primary" />
               <span>CoffeeHybrid</span>
             </Link>
@@ -29,19 +30,19 @@ export default function Footer() {
             <h4 className="font-bold text-sm mb-3 uppercase tracking-tight">Customer</h4>
             <nav className="space-y-2">
               <Link
-                href="/menu"
+                href={ROUTES.MENU}
                 className="text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 Menu
               </Link>
               <Link
-                href="/checkout"
+                href={ROUTES.CHECKOUT}
                 className="block text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 Checkout
               </Link>
               <Link
-                href="/login"
+                href={ROUTES.LOGIN}
                 className="block text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 Login
@@ -54,19 +55,19 @@ export default function Footer() {
             <h4 className="font-bold text-sm mb-3 uppercase tracking-tight">Operations</h4>
             <nav className="space-y-2">
               <Link
-                href="/staff"
+                href={ROUTES.STAFF}
                 className="block text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 Staff Portal
               </Link>
               <Link
-                href="/staff/scan"
+                href={ROUTES.STAFF_SCAN}
                 className="block text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 QR Scanner
               </Link>
               <Link
-                href="/admin"
+                href={ROUTES.ADMIN}
                 className="block text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 Admin
@@ -79,19 +80,19 @@ export default function Footer() {
             <h4 className="font-bold text-sm mb-3 uppercase tracking-tight">Legal</h4>
             <nav className="space-y-2">
               <a
-                href="#privacy"
+                href={LEGAL_LINKS.PRIVACY}
                 className="block text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 Privacy
               </a>
               <a
-                href="#terms"
+                href={LEGAL_LINKS.TERMS}
                 className="block text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 Terms
               </a>
               <a
-                href="#contact"
+                href={LEGAL_LINKS.CONTACT}
                 className="block text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 Contact

@@ -5,6 +5,12 @@
 
 import { v4 as uuidv4 } from 'uuid';
 
+// Constants
+export const ORDER_EXPIRY_MINUTES = 30;
+
+// Regex pattern compiled once at module level (not on every validation)
+const UUID_V4_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 /**
  * Generates a unique QR code for an order
  * Uses UUID v4 as the QR token - stored in Order.qrCode and displayed as QR image
@@ -20,9 +26,7 @@ export const generateQRCode = (): string => {
  * @returns True if valid UUID format, false otherwise
  */
 export const isValidQRFormat = (qrCode: string): boolean => {
-  // UUID v4 format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(qrCode);
+  return UUID_V4_REGEX.test(qrCode);
 };
 
 /**
@@ -31,7 +35,7 @@ export const isValidQRFormat = (qrCode: string): boolean => {
  * @param createdAt - Order creation timestamp
  * @returns Date object representing when the order expires
  */
-export const calculateExpirationTime = (createdAt: Date, expirationMinutes: number = 30): Date => {
+export const calculateExpirationTime = (createdAt: Date, expirationMinutes: number = ORDER_EXPIRY_MINUTES): Date => {
   return new Date(new Date(createdAt).getTime() + expirationMinutes * 60000);
 };
 
@@ -41,6 +45,5 @@ export const calculateExpirationTime = (createdAt: Date, expirationMinutes: numb
  * @returns True if expired, false if still valid
  */
 export const isExpired = (expiresAt: Date | string): boolean => {
-  const expirationTime = new Date(expiresAt);
-  return expirationTime < new Date();
+  return new Date(expiresAt).getTime() < Date.now();
 };

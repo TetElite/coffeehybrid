@@ -3,6 +3,7 @@ import dbConnect from '@/lib/mongodb';
 import Order from '@/models/Order';
 import User from '@/models/User';
 import Strike from '@/models/Strike';
+import { applyStrike } from '@/lib/strikes';
 
 export const GET = async (req: Request) => {
     // Basic CRON security check via CRON_SECRET header
@@ -36,11 +37,7 @@ export const GET = async (req: Request) => {
 
                 const user = await User.findById(userId);
                 if (user) {
-                    user.strikes += 1;
-                    // Auto-suspend check: if strikes >= 3, suspend for 24h
-                    if (user.strikes >= 3) {
-                        user.suspendedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h suspension
-                    }
+                    applyStrike(user);
                     await user.save();
                 }
             }

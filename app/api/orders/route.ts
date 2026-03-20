@@ -4,8 +4,10 @@ import dbConnect from '@/lib/mongodb';
 import Order from '@/models/Order';
 import User from '@/models/User';
 import Product from '@/models/Product';
-import { v4 as uuidv4 } from 'uuid';
 import { IOrderItem, IProduct } from '@/types';
+import { generateQRCode, calculateExpirationTime } from '@/lib/qr';
+import { isSuspended } from '@/lib/strikes';
+import mongoose from 'mongoose';
 
 export const POST = async (req: Request) => {
     try {
@@ -18,7 +20,7 @@ export const POST = async (req: Request) => {
 
         // Check user suspension
         const dbUser = await User.findOne({ email: session.user.email });
-        if (dbUser && dbUser.suspendedUntil && new Date(dbUser.suspendedUntil) > new Date()) {
+        if (dbUser && isSuspended(dbUser.suspendedUntil)) {
             return NextResponse.json({
                 success: false,
                 error: 'Account suspended',
@@ -38,9 +40,20 @@ export const POST = async (req: Request) => {
         const processedItems = [];
 
         for (const item of items) {
+            // Validate Object ID before querying
+            if (!mongoose.Types.ObjectId.isValid(item.product)) {
+                return NextResponse.json({ 
+                    success: false, 
+                    error: 'Your cart contains outdated items. Please clear your cart and refresh the menu.' 
+                }, { status: 400 });
+            }
+
             const product = await Product.findById(item.product) as IProduct;
             if (!product || !product.isAvailable) {
-                throw new Error(`Product ${item.product} is not available`);
+                 return NextResponse.json({ 
+                    success: false, 
+                    error: 'One or more items in your cart are no longer available. Please update your cart.' 
+                }, { status: 400 });
             }
 
             let itemUnitPrice = product.basePrice;
@@ -68,8 +81,8 @@ export const POST = async (req: Request) => {
             });
         }
 
-        const next30Mins = new Date(Date.now() + 30 * 60000);
-        const qrCode = uuidv4();
+        const next30Mins = calculateExpirationTime(new Date());
+        const qrCode = generateQRCode();
 
         const order = await Order.create({
             user: dbUser?._id,

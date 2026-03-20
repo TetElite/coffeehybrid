@@ -20,18 +20,41 @@ interface ScanResult {
 export default function QRScanner() {
     const [scanResult, setScanResult] = useState<ScanResult | null>(null);
     const [isVerifying, setIsVerifying] = useState(false);
+    const isVerifyingRef = useRef(false); // Ref to track verifying state without re-triggering effect
     const scannerRef = useRef<Html5QrcodeScanner | null>(null);
 
     useEffect(() => {
-        scannerRef.current = new Html5QrcodeScanner(
+        // Prevent double initialization
+        if (scannerRef.current) return;
+
+
+        // Initialize scanner with full-width configuration
+        const width = window.innerWidth;
+        const qrBoxSize = width > 600 ? 500 : 300; 
+
+        const scanner = new Html5QrcodeScanner(
             "reader",
-            { fps: 10, qrbox: { width: 250, height: 250 } },
+            { 
+                fps: 15,
+                qrbox: { width: qrBoxSize, height: qrBoxSize },
+                aspectRatio: 1.0,
+                showTorchButtonIfSupported: true,
+                rememberLastUsedCamera: true,
+            },
             /* verbose= */ false
         );
 
-        const onScanSuccess = async (decodedText: string) => {
-            if (isVerifying) return;
+        const onScanSuccess = async (decodedText: string, decodedResult: any) => {
+            if (isVerifyingRef.current) return;
+            
+            console.log(`Scan verified: ${decodedText}`, decodedResult);
+            isVerifyingRef.current = true;
             setIsVerifying(true);
+            
+            // Clean up scanner immediately to stop usage
+            if(scannerRef.current) {
+                scannerRef.current.pause();
+            }
 
             try {
                 const response = await fetch('/api/staff/verify-qr', {
@@ -44,38 +67,56 @@ export default function QRScanner() {
                 if (data.success) {
                     setScanResult({ success: true, data: data.data });
                     toast.success('Order Verified!');
+                    // Optionally clear scanner on success
+                    scannerRef.current?.clear();
                 } else {
                     setScanResult({ success: false, error: data.error, data: data.data });
                     toast.error(data.error || 'Verification failed');
+                    // On failure, allow scanning again after a delay
+                    setTimeout(() => {
+                        isVerifyingRef.current = false;
+                        setIsVerifying(false);
+                        setScanResult(null); 
+                    }, 3000);
                 }
             } catch {
                 toast.error('Network error during verification');
-            } finally {
+                isVerifyingRef.current = false;
                 setIsVerifying(false);
             }
         };
 
-        const onScanFailure = () => {
+        const onScanFailure = (error: any) => {
             // Silence errors as they happen constantly during seek
         };
 
-        scannerRef.current.render(onScanSuccess, onScanFailure);
+        scanner.render(onScanSuccess, onScanFailure);
+        scannerRef.current = scanner;
 
+        // Cleanup function
         return () => {
-            if (scannerRef.current) {
-                scannerRef.current.clear().catch((err: Error) => console.error("Failed to clear scanner", err));
+             if (scannerRef.current) {
+                try {
+                    scannerRef.current.clear();
+                } catch (e) {
+                    // Ignore clear errors
+                }
+                scannerRef.current = null;
             }
         };
-    }, [isVerifying]);
+    }, []); // Empty dependency array - run ONLY on mount
 
     const resetScan = () => {
         setScanResult(null);
-        // Reinstate scanner if needed, but it stays active unless we clear it.
-        // Actually, html5-qrcode implementation details might differ, let's keep it simple.
+        if (scannerRef.current) {
+            scannerRef.current.resume().catch(() => {});
+        }
+        isVerifyingRef.current = false;
+        setIsVerifying(false);
     };
 
     return (
-        <div className="max-w-xl mx-auto space-y-8">
+        <div className="w-full max-w-2xl mx-auto space-y-6">
             <header className="flex items-center gap-4">
                 <Link href="/staff">
                     <Button variant="outline" size="icon" className="rounded-full h-12 w-12 hover:bg-primary/10">
@@ -143,21 +184,24 @@ export default function QRScanner() {
                         key="scanner"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="relative overflow-hidden rounded-[2rem] border border-border/40 bg-card/40 backdrop-blur-md shadow-2xl"
+                        className="relative overflow-hidden rounded-[2rem] border border-border/40 bg-black backdrop-blur-md shadow-2xl"
                     >
-                        <div id="reader" className="overflow-hidden" />
+                        <div id="reader" className="w-full overflow-hidden [&>div]:!shadow-none [&>div]:!border-none" />
 
-                        <div className="absolute inset-x-0 bottom-0 p-8 bg-gradient-to-t from-background to-transparent pointer-events-none">
-                            <div className="flex items-center justify-center gap-3 text-muted-foreground animate-pulse">
-                                <span className="w-2 h-2 rounded-full bg-primary" />
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Scanning for QR Tokens...</span>
-                            </div>
-                        </div>
+                        {/* Scanner Laser (Pure visual effect) */}
+                        <div className="absolute top-1/2 left-0 w-full h-0.5 bg-red-500/80 shadow-[0_0_15px_rgba(239,68,68,0.8)] z-10 pointer-events-none opacity-50" />
 
-                        {isVerifying && (
-                            <div className="absolute inset-0 bg-background/60 backdrop-blur-sm flex flex-col items-center justify-center gap-4 z-50">
+                        {isVerifying ? (
+                            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4 z-50">
                                 <Loader2 className="w-12 h-12 animate-spin text-primary" />
                                 <p className="font-black text-sm uppercase tracking-widest text-primary animate-pulse">Verifying...</p>
+                            </div>
+                        ) : (
+                            <div className="absolute inset-x-0 bottom-0 p-8 bg-gradient-to-t from-black to-transparent pointer-events-none z-20">
+                                <div className="flex items-center justify-center gap-3 text-white/70 animate-pulse">
+                                    <span className="w-2 h-2 rounded-full bg-primary shadow-[0_0_10px_theme(colors.primary.DEFAULT)]" />
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em]">Scanning Active...</span>
+                                </div>
                             </div>
                         )}
                     </motion.div>

@@ -5,6 +5,8 @@ import Order from '@/models/Order';
 import User from '@/models/User';
 import Strike from '@/models/Strike';
 import { ExtendedUser } from '@/types';
+import { isExpired } from '@/lib/qr';
+import { applyStrike } from '@/lib/strikes';
 
 export const POST = async (req: Request) => {
     try {
@@ -34,10 +36,9 @@ export const POST = async (req: Request) => {
             return NextResponse.json({ success: false, error: 'Order was cancelled' }, { status: 400 });
         }
 
-        const now = new Date();
-        const isExpired = new Date(order.expiresAt) < now;
+        const orderIsExpired = isExpired(order.expiresAt);
 
-        if (isExpired || order.status === 'expired') {
+        if (orderIsExpired || order.status === 'expired') {
             // Handle no-show strike logic if not already done by cron
             if (order.status !== 'expired') {
                 order.status = 'expired';
@@ -51,10 +52,7 @@ export const POST = async (req: Request) => {
 
                     const user = await User.findById(userId);
                     if (user) {
-                        user.strikes += 1;
-                        if (user.strikes >= 3) {
-                            user.suspendedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h suspension
-                        }
+                        applyStrike(user);
                         await user.save();
                     }
                 }

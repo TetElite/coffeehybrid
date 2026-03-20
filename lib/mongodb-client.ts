@@ -6,11 +6,11 @@ if (!process.env.MONGODB_URI) {
 
 const uri = process.env.MONGODB_URI;
 const options = {
-    serverApi: {
-        version: ServerApiVersion.v1,
-        strict: true,
-        deprecationErrors: true,
-    },
+    maxPoolSize: 10,
+    serverSelectionTimeoutMS: 3000, // Reduced from 15s to 3s for faster fallback
+    socketTimeoutMS: 5000,
+    connectTimeoutMS: 3000,
+    family: 4, // Use IPv4, skip trying IPv6
 };
 
 let client: MongoClient;

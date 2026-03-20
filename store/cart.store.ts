@@ -21,7 +21,7 @@ export const useCartStore = create<CartState>()(
         (set, get) => ({
             items: [],
             addItem: (product, customizations, unitPrice) => {
-                const productID = typeof product._id === 'object' ? product._id.toString() : product._id;
+                const productID = product._id;
 
                 set((state) => ({
                     items: [...state.items, {

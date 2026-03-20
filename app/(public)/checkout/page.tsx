@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 import { useState } from 'react';
 import { ExtendedUser } from '@/types';
+import { isSuspended } from '@/lib/strikes';
 
 export default function CheckoutPage() {
     const { data: session, status } = useSession();
@@ -35,9 +36,9 @@ export default function CheckoutPage() {
     }
 
     const { suspendedUntil } = (session?.user as ExtendedUser) || {};
-    const isSuspended = !!(suspendedUntil && new Date(suspendedUntil) > new Date());
+    const isUserSuspended = isSuspended(suspendedUntil);
 
-    if (isSuspended) {
+    if (isUserSuspended) {
         return (
             <div className="container px-4 py-20 flex flex-col items-center text-center gap-8 max-w-xl mx-auto">
                 <div className="p-8 rounded-[2rem] bg-destructive/10 text-destructive border border-destructive/20 shadow-2xl flex flex-col items-center gap-6">

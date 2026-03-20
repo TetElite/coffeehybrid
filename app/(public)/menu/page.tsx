@@ -24,14 +24,30 @@ export default function MenuPage() {
             setLoading(true);
             try {
                 const [productsRes, categoriesRes] = await Promise.all([
-                    fetch('/api/products').then(res => res.json()),
-                    fetch('/api/categories').then(res => res.json())
+                    fetch('/api/products').then(async res => {
+                        if (!res.ok) throw new Error(`Products fetch failed: ${res.status}`);
+                        return res.json();
+                    }),
+                    fetch('/api/categories').then(async res => {
+                        if (!res.ok) throw new Error(`Categories fetch failed: ${res.status}`);
+                        return res.json();
+                    })
                 ]);
 
-                if (productsRes.success) setProducts(productsRes.data);
-                if (categoriesRes.success) setCategories(categoriesRes.data);
+                if (productsRes.success) {
+                    setProducts(productsRes.data);
+                } else {
+                    console.error('Products API returned unsuccessful response:', productsRes);
+                }
+
+                if (categoriesRes.success) {
+                    setCategories(categoriesRes.data);
+                } else {
+                    console.error('Categories API returned unsuccessful response:', categoriesRes);
+                }
             } catch (error) {
                 console.error("Error fetching data", error);
+                // Can set UI error state here if needed
             } finally {
                 setLoading(false);
             }
